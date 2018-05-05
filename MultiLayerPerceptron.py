@@ -7,7 +7,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.neural_network import MLPClassifier
 
 def encodeCategoricalData(X, index):
@@ -22,15 +22,18 @@ def encodeHotEncoder(X):
     X = X[:, 1:]
     return X
 
+def minimumValues(train):
+    return [0 if math.isnan(x) else x for x in train]
+
 def minimumDelay(x):
     return 0 if np.isnan(x) or x < 0 else x
 
 
 # importing the data
-dataset = pd.read_csv("./data/flights.csv", nrows = 1000)
+dataset = pd.read_csv("./data/echocardiogram.csv", nrows = 200)
 minimalFunc = np.vectorize(minimumDelay)
-X = dataset.iloc[:, 7:10].values        
-y = minimalFunc(dataset.iloc[:, 11].values)
+X = np.apply_along_axis(minimumValues, axis=1, arr=dataset.iloc[:, 2:9].values)     
+y = minimalFunc(dataset.iloc[:, 1].values)
 
 # encode categorical data
 #X = encodeCategoricalData(X, 4)
@@ -38,11 +41,11 @@ y = minimalFunc(dataset.iloc[:, 11].values)
 #X = encodeCategoricalData(X, 7)
 #X = encodeCategoricalData(X, 8)
 
-X = encodeCategoricalData(X, 0)
-X = encodeCategoricalData(X, 1)
+#X = encodeCategoricalData(X, 0)
+#X = encodeCategoricalData(X, 1)
 
 
-X = encodeHotEncoder(X)
+#X = encodeHotEncoder(X)
 
 
 # splitting the dataset into the training set and test set
@@ -57,7 +60,7 @@ X_test = sc.transform(X_test)
 
 # initializing the Multi Layer Perceptron 
 classifier = MLPClassifier(solver="lbfgs", alpha=1e-5, 
-                           hidden_layer_sizes=(5, 3), random_state=1)
+                           hidden_layer_sizes=(30, 30, 30), random_state=1)
 
 # fitting the Multi Layer Perceptron to the training set
 classifier.fit(X_train, y_train)
@@ -74,4 +77,5 @@ y_pred = (y_pred > 0.5)
 cm = confusion_matrix(y_test.ravel(), y_pred.ravel())
 
 #pd.crosstab(y_test.ravel(), y_pred.ravel(), rownames=['True'], colnames=['Predicted'], margins=True)
+print(classification_report(y_test, y_pred))
 
