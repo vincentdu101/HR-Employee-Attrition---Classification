@@ -1,20 +1,21 @@
 # HR Employee Attrition Predictor
-# pip install --ignore-installed six tensorflow
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import graphviz
+import seaborn as sns
 import sklearn.metrics as metrics
 
 import plotly.offline as py
 py.init_notebook_mode(connected=True)
 import plotly.graph_objs as go
 import plotly.tools as tls
-
+ 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.preprocessing import StandardScaler
 from sklearn.naive_bayes import GaussianNB
+from sklearn.preprocessing import label_binarize
 from matplotlib.colors import ListedColormap
 
 def encodeOutputVariable(y):
@@ -41,7 +42,7 @@ def minimumDelay(x):
     return 0 if np.isnan(x) or x < 0 else x
 
 def outputPredictorResults(y_test, y_pred, title):
-    # output results for Naive Bayes Classification
+    # output results for Neural network Classification
     print("\nFor", title, "Classification")
     print("Accuracy Score of Prediction : ", metrics.accuracy_score(y_test, y_pred) * 100)
     print("\nConfusion Matrix")
@@ -50,13 +51,36 @@ def outputPredictorResults(y_test, y_pred, title):
     print(metrics.classification_report(y_test, y_pred))
     print("Zero One Loss: ", metrics.zero_one_loss(y_test, y_pred))
     print("Log Loss:      ", metrics.log_loss(y_test, y_pred))
-    print("ROC AUC Score: ", metrics.roc_auc_score(y_test, y_pred))
+    print("ROC AUC Score: ", metrics.roc_auc_score(y_test, y_pred, average="micro"))
+    graphROCCurve(y_test, y_pred, y)
+    
+def graphROCCurve(y_test, y_pred, y):    
+    fpr = {}
+    tpr = {}
+    roc_auc = {}
+    
+    # Compute micro-average ROC curve and ROC area
+    fpr["micro"], tpr["micro"], _ = metrics.roc_curve(y_test.ravel(), y_pred.ravel())
+    roc_auc["micro"] = metrics.auc(fpr["micro"], tpr["micro"])
+    
+    plt.figure()
+    lw = 2
+    plt.plot(fpr["micro"], tpr["micro"], color='darkorange',
+             lw=lw, label='ROC curve (area = %0.2f)' % roc_auc["micro"])
+    plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('Receiver operating characteristic')
+    plt.legend(loc="lower right")
+    plt.show()
 
 # developing the Multi Layer Perceptron Neural Network
 def creatingNeuralNetworkPredictor(X_train, y_train, X_test, y_test):
     # initialize the Multi Layer Perceptron Neural Network 
     mlp_classifier = MLPClassifier(solver="adam", alpha=1e-5, max_iter=500,
-                               hidden_layer_sizes=(13, 13, 13), )
+                               hidden_layer_sizes=(13, 13, 13))
     
     # fitting the Multi Layer Perceptron to the training set
     mlp_classifier.fit(X_train, y_train)
@@ -70,9 +94,8 @@ def creatingNeuralNetworkPredictor(X_train, y_train, X_test, y_test):
     # making the confusion matrix
     cm = confusion_matrix(y_test.ravel(), mlp_y_pred.ravel())
     
-    # get the score of the training set
-    print("Score of Training Set: ", mlp_classifier.score(X_train, y_train))
-    print("Score of Testing Set:  ", mlp_classifier.score(X_test, y_test))    
+    print("Training set Score: ", mlp_classifier.score(X_train, y_train))
+    print("Testing set Score: ", mlp_classifier.score(X_test, y_test))    
     
     # output results
     outputPredictorResults(y_test, mlp_y_pred, "Neural Network")
@@ -102,9 +125,6 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.3)
 sc = StandardScaler(copy=True, with_mean=True, with_std=True)
 X_train = sc.fit_transform(X_train)
 X_test = sc.transform(X_test)
-
-X_train_filter = sc.fit_transform(X_train_filter)
-X_test_filter = sc.transform(X_test_filter)
 
 # outputting data summary
 print("Summary Info About the Dataset")
